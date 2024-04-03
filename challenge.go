@@ -1,15 +1,14 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
 	"log"
 	"net/http"
-	"regexp"
-	"strconv"
 	"strings"
+
+	"github.com/le-quentin/pulley_challenge/decrypt"
 )
 
 const ROOT_URL = "https://ciphersprint.pulley.com/"
@@ -45,6 +44,12 @@ func main() {
 		log.Panic("Error while completing fifth level: ", err)
 	}
 	log.Printf("Decrypted next path is: %+v", nextPath)
+	nextPath, err = getNextPath(nextPath)
+
+	if err != nil {
+		log.Panic("Error while completing sixth level: ", err)
+	}
+	log.Printf("Decrypted next path is: %+v", nextPath)
 }
 
 func getNextPath(path string) (string, error) {
@@ -78,58 +83,8 @@ func (r ChallengeResponse) Decrypt() (string, error) {
 	}
 
 	encrypted := strings.Split(r.Encrypted_Path, "_")[1]
-	decrypted, err := decrypt(encrypted, r.Encryption_Method)
+	decrypted, err := decrypt.FromMethod(encrypted, r.Encryption_Method)
 	return "task_" + decrypted, err
-}
-
-func decrypt(encrypted string, method string) (string, error) {
-	if method == "converted to a JSON array of ASCII values" {
-		var asciiCodes []byte
-		err := json.Unmarshal([]byte(encrypted), &asciiCodes)
-		return string(asciiCodes), err
-	}
-
-	if method == "inserted some non-hex characters" {
-		return regexp.MustCompile(`[^0-9a-fA-F]+`).ReplaceAllString(encrypted, ""), nil
-	}
-
-	if strings.Contains(method, "circularly rotated left") {
-		charsToRotate, err := strconv.Atoi(method[strings.LastIndex(method, " ")+1:])
-		if err != nil {
-			return "", err
-		}
-		return rotateRightBy(encrypted, charsToRotate), nil
-	}
-
-	if method == "hex decoded, encrypted with XOR, hex encoded again. key: secret" {
-		hexDecoded, err := hex.DecodeString(encrypted)
-		if err != nil {
-			return "", err
-		}
-		xorDecrypted := xorWithStringKey([]byte(hexDecoded), "secret")
-		return hex.EncodeToString(xorDecrypted), nil
-	}
-
-	return "", errors.New("Unkown encryption method: " + method)
-}
-
-func xorWithStringKey(input []byte, key string) []byte {
-	kL := len(key)
-
-	var result []byte
-	for i := 0; i < len(input); i++ {
-		result = append(result, input[i]^key[i%kL])
-	}
-	return result
-}
-
-func rotateRightBy(str string, n int) string {
-	charsCount := len(str)
-	shift := n % charsCount
-	if shift == 0 {
-		return str
-	}
-	return str[charsCount-shift:] + str[0:charsCount-shift]
 }
 
 func getChallengeResposne(path string) (*ChallengeResponse, error) {
