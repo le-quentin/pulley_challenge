@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -11,8 +12,11 @@ const ROOT_URL = "https://ciphersprint.pulley.com/"
 const EMAIL = "quentin@bonnet.software"
 
 func main() {
-	response := getPath(EMAIL)
-	log.Printf("%+v\n", response)
+	response, err := getPath(EMAIL)
+	if err != nil {
+		log.Panic("Error while completing first level: ", err)
+	}
+	log.Printf("%+v", response)
 }
 
 type ChallengeResponse struct {
@@ -25,25 +29,25 @@ type ChallengeResponse struct {
 	Level             int32
 }
 
-func getPath(path string) ChallengeResponse {
+func getPath(path string) (*ChallengeResponse, error) {
 	response, err := http.Get(ROOT_URL + EMAIL)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	if response.StatusCode >= 300 {
-		log.Fatal("Call to " + path + " returned status code " + response.Status)
+		return nil, errors.New("Call to " + path + " returned status code " + response.Status)
 	}
 
 	body, readErr := io.ReadAll(response.Body)
 	if readErr != nil {
-		log.Fatal(readErr)
+		return nil, readErr
 	}
 
 	responseObject := ChallengeResponse{}
 	jsonErr := json.Unmarshal(body, &responseObject)
 	if jsonErr != nil {
-		log.Fatal(jsonErr)
+		return nil, jsonErr
 	}
 
-	return responseObject
+	return &responseObject, nil
 }
