@@ -103,6 +103,3 @@ func getChallengeResposne(path string) (*ChallengeResponse, error) {
 
 	return &responseObject, nil
 }
-
-func extractEncryptionMethod(encryptionMethod string) {
-}
