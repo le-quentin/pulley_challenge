@@ -12,17 +12,32 @@ const ROOT_URL = "https://ciphersprint.pulley.com/"
 const EMAIL = "quentin@bonnet.software"
 
 func main() {
-	response, err := getPath(EMAIL)
+	nextPath, err := getNextPath(EMAIL)
 	if err != nil {
 		log.Panic("Error while completing first level: ", err)
 	}
-	log.Printf("%+v", response)
+	log.Printf("Decrypted next path is: %+v", nextPath)
 
-	response, err = getPath(response.Encrypted_Path)
+	nextPath, err = getNextPath(nextPath)
 	if err != nil {
 		log.Panic("Error while completing second level: ", err)
 	}
-	log.Printf("%+v", response)
+	log.Printf("Decrypted next path is: %+v", nextPath)
+}
+
+func getNextPath(path string) (string, error) {
+	response, err := getChallengeResposne(path)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("Request: %+v, Reply: %+v", path, response)
+
+	nextPath, err := response.Decrypt()
+	if err != nil {
+		return "", err
+	}
+
+	return nextPath, nil
 }
 
 type ChallengeResponse struct {
@@ -35,7 +50,14 @@ type ChallengeResponse struct {
 	Level             int32
 }
 
-func getPath(path string) (*ChallengeResponse, error) {
+func (r ChallengeResponse) Decrypt() (string, error) {
+	switch r.Encryption_Method {
+		case "nothing" : return r.Encrypted_Path, nil
+		default: return "", errors.New("Unkown encryption method: " + r.Encryption_Method)
+	}
+}
+
+func getChallengeResposne(path string) (*ChallengeResponse, error) {
 	response, err := http.Get(ROOT_URL + EMAIL)
 	if err != nil {
 		return nil, err
@@ -56,4 +78,7 @@ func getPath(path string) (*ChallengeResponse, error) {
 	}
 
 	return &responseObject, nil
+}
+
+func extractEncryptionMethod(encryptionMethod string) {
 }
