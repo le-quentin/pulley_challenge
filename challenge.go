@@ -17,6 +17,12 @@ func main() {
 		log.Panic("Error while completing first level: ", err)
 	}
 	log.Printf("%+v", response)
+
+	response, err = getPath(response.Encrypted_Path)
+	if err != nil {
+		log.Panic("Error while completing second level: ", err)
+	}
+	log.Printf("%+v", response)
 }
 
 type ChallengeResponse struct {
