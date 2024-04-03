@@ -58,7 +58,7 @@ func (r ChallengeResponse) Decrypt() (string, error) {
 }
 
 func getChallengeResposne(path string) (*ChallengeResponse, error) {
-	response, err := http.Get(ROOT_URL + EMAIL)
+	response, err := http.Get(ROOT_URL + path)
 	if err != nil {
 		return nil, err
 	}
