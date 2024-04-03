@@ -24,6 +24,12 @@ func main() {
 		log.Panic("Error while completing second level: ", err)
 	}
 	log.Printf("Decrypted next path is: %+v", nextPath)
+
+	nextPath, err = getNextPath(nextPath)
+	if err != nil {
+		log.Panic("Error while completing third level: ", err)
+	}
+	log.Printf("Decrypted next path is: %+v", nextPath)
 }
 
 func getNextPath(path string) (string, error) {
@@ -52,14 +58,23 @@ type ChallengeResponse struct {
 }
 
 func (r ChallengeResponse) Decrypt() (string, error) {
-	switch r.Encryption_Method {
-		case "nothing" : return r.Encrypted_Path, nil
-		case "converted to a JSON array of ASCII values" : 
-			var asciiCodes []byte
-			encrypted := strings.Split(r.Encrypted_Path, "_")[1]
-			err := json.Unmarshal([]byte(encrypted), &asciiCodes)
-			return "task_" + string(asciiCodes), err
-		default: return "", errors.New("Unkown encryption method: " + r.Encryption_Method)
+	if r.Encryption_Method == "nothing" {
+		return r.Encrypted_Path, nil
+	}
+
+	encrypted := strings.Split(r.Encrypted_Path, "_")[1]
+	decrypted, err := decrypt(encrypted, r.Encryption_Method)
+	return "task_" + decrypted, err
+}
+
+func decrypt(encrypted string, method string) (string, error) {
+	switch method {
+	case "converted to a JSON array of ASCII values":
+		var asciiCodes []byte
+		err := json.Unmarshal([]byte(encrypted), &asciiCodes)
+		return string(asciiCodes), err
+	default:
+		return "", errors.New("Unkown encryption method: " + method)
 	}
 }
 
