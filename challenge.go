@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -29,6 +30,12 @@ func main() {
 	nextPath, err = getNextPath(nextPath)
 	if err != nil {
 		log.Panic("Error while completing third level: ", err)
+	}
+	log.Printf("Decrypted next path is: %+v", nextPath)
+
+	nextPath, err = getNextPath(nextPath)
+	if err != nil {
+		log.Panic("Error while completing fourth level: ", err)
 	}
 	log.Printf("Decrypted next path is: %+v", nextPath)
 }
@@ -69,16 +76,34 @@ func (r ChallengeResponse) Decrypt() (string, error) {
 }
 
 func decrypt(encrypted string, method string) (string, error) {
-	switch method {
-	case "converted to a JSON array of ASCII values":
+	if method == "converted to a JSON array of ASCII values" {
 		var asciiCodes []byte
 		err := json.Unmarshal([]byte(encrypted), &asciiCodes)
 		return string(asciiCodes), err
-	case "inserted some non-hex characters":
-		return regexp.MustCompile(`[^0-9a-fA-F]+`).ReplaceAllString(encrypted, ""), nil
-	default:
-		return "", errors.New("Unkown encryption method: " + method)
 	}
+
+	if method == "inserted some non-hex characters" {
+		return regexp.MustCompile(`[^0-9a-fA-F]+`).ReplaceAllString(encrypted, ""), nil
+	}
+
+	if strings.Contains(method, "circularly rotated left") {
+		charsToRotate, err := strconv.Atoi(method[strings.LastIndex(method, " ")+1:])
+		if err != nil {
+			return "", err
+		}
+		return rotateRightBy(encrypted, charsToRotate), nil
+	}
+
+	return "", errors.New("Unkown encryption method: " + method)
+}
+
+func rotateRightBy(str string, n int) string {
+	charsCount := len(str)
+	shift := n % charsCount
+	if shift == 0 {
+		return str
+	}
+	return str[charsCount-shift:] + str[0:charsCount-shift]
 }
 
 func getChallengeResposne(path string) (*ChallengeResponse, error) {
