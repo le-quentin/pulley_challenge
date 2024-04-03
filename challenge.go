@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/le-quentin/pulley_challenge/decrypt"
@@ -44,16 +45,24 @@ func main() {
 		log.Panic("Error while completing fifth level: ", err)
 	}
 	log.Printf("Decrypted next path is: %+v", nextPath)
-	nextPath, err = getNextPath(nextPath)
 
+	nextPath, err = getNextPath(nextPath)
 	if err != nil {
 		log.Panic("Error while completing sixth level: ", err)
 	}
 	log.Printf("Decrypted next path is: %+v", nextPath)
+
+	lastResponse, err := getChallengeResponse(nextPath)
+	if err != nil {
+		log.Panic("Error while fetching last response", err)
+	}
+
+	log.Printf("Last response: %+v\n#########SUCCESS#########\n", lastResponse)
+	os.Exit(0)
 }
 
 func getNextPath(path string) (string, error) {
-	response, err := getChallengeResposne(path)
+	response, err := getChallengeResponse(path)
 	if err != nil {
 		return "", err
 	}
@@ -87,7 +96,7 @@ func (r ChallengeResponse) Decrypt() (string, error) {
 	return "task_" + decrypted, err
 }
 
-func getChallengeResposne(path string) (*ChallengeResponse, error) {
+func getChallengeResponse(path string) (*ChallengeResponse, error) {
 	response, err := http.Get(ROOT_URL + path)
 	if err != nil {
 		return nil, err
