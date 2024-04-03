@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -73,6 +74,8 @@ func decrypt(encrypted string, method string) (string, error) {
 		var asciiCodes []byte
 		err := json.Unmarshal([]byte(encrypted), &asciiCodes)
 		return string(asciiCodes), err
+	case "inserted some non-hex characters":
+		return regexp.MustCompile(`[^0-9a-fA-F]+`).ReplaceAllString(encrypted, ""), nil
 	default:
 		return "", errors.New("Unkown encryption method: " + method)
 	}
