@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -36,6 +37,12 @@ func main() {
 	nextPath, err = getNextPath(nextPath)
 	if err != nil {
 		log.Panic("Error while completing fourth level: ", err)
+	}
+	log.Printf("Decrypted next path is: %+v", nextPath)
+
+	nextPath, err = getNextPath(nextPath)
+	if err != nil {
+		log.Panic("Error while completing fifth level: ", err)
 	}
 	log.Printf("Decrypted next path is: %+v", nextPath)
 }
@@ -94,7 +101,26 @@ func decrypt(encrypted string, method string) (string, error) {
 		return rotateRightBy(encrypted, charsToRotate), nil
 	}
 
+	if method == "hex decoded, encrypted with XOR, hex encoded again. key: secret" {
+		hexDecoded, err := hex.DecodeString(encrypted)
+		if err != nil {
+			return "", err
+		}
+		xorDecrypted := xorWithStringKey([]byte(hexDecoded), "secret")
+		return hex.EncodeToString(xorDecrypted), nil
+	}
+
 	return "", errors.New("Unkown encryption method: " + method)
+}
+
+func xorWithStringKey(input []byte, key string) []byte {
+	kL := len(key)
+
+	var result []byte
+	for i := 0; i < len(input); i++ {
+		result = append(result, input[i]^key[i%kL])
+	}
+	return result
 }
 
 func rotateRightBy(str string, n int) string {
