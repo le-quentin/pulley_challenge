@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 )
 
 const ROOT_URL = "https://ciphersprint.pulley.com/"
@@ -53,6 +54,11 @@ type ChallengeResponse struct {
 func (r ChallengeResponse) Decrypt() (string, error) {
 	switch r.Encryption_Method {
 		case "nothing" : return r.Encrypted_Path, nil
+		case "converted to a JSON array of ASCII values" : 
+			var asciiCodes []byte
+			encrypted := strings.Split(r.Encrypted_Path, "_")[1]
+			err := json.Unmarshal([]byte(encrypted), &asciiCodes)
+			return "task_" + string(asciiCodes), err
 		default: return "", errors.New("Unkown encryption method: " + r.Encryption_Method)
 	}
 }
